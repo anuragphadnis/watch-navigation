@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound Scope</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #deded8;
+  --wave: #9aa3ad; --env: #1f6feb; --thr: #d1242f; --pulse: rgba(31,111,235,.16);
+  --short: #1a7f37; --long: #bf5b04; --call: rgba(130,80,223,.13); --callEdge: #8250df;
+  --sel: rgba(31,111,235,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --panel: #1e1e1c; --ink: #ecece8; --muted: #9b9b94; --line: #33332f;
+    --wave: #5c636b; --env: #58a6ff; --thr: #ff7b72; --pulse: rgba(88,166,255,.18);
+    --short: #3fb950; --long: #f0883e; --call: rgba(188,140,255,.14); --callEdge: #bc8cff;
+    --sel: rgba(88,166,255,.14);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --panel: #1e1e1c; --ink: #ecece8; --muted: #9b9b94; --line: #33332f;
+  --wave: #5c636b; --env: #58a6ff; --thr: #ff7b72; --pulse: rgba(88,166,255,.18);
+  --short: #3fb950; --long: #f0883e; --call: rgba(188,140,255,.14); --callEdge: #bc8cff;
+  --sel: rgba(88,166,255,.14);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+p.sub { margin: 0 0 14px; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+#drop { border: 2px dashed var(--line); border-radius: 10px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; }
+#drop.over { border-color: var(--env); color: var(--ink); }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 16px; }
+.controls label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
+.controls input[type=range] { width: 100%; }
+.controls output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: inherit; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--env); }
+canvas { display: block; width: 100%; border-radius: 6px; }
+.label { font-size: 12px; color: var(--muted); margin: 8px 0 4px; display: flex; justify-content: space-between; gap: 8px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; }
+th, td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+tr.click { cursor: pointer; } tr.click:hover { background: var(--sel); }
+.tbl { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+.S { color: var(--short); font-weight: 600; } .L { color: var(--long); font-weight: 600; }
+.morse { font: 600 18px ui-monospace, monospace; letter-spacing: 3px; }
+#status { color: var(--muted); font-size: 12px; }
+textarea { width: 100%; min-height: 60px; font: 12px ui-monospace, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sound Scope</h1>
+  <p class="sub">Find the watch's vibration pulses in a recording and time them against the fake calls.</p>
+
+  <div class="panel">
+    <div id="drop">Drop a recording (.wav, .mp3, .m4a, .webm) and optionally its <code>.markers.txt</code> here, or click to choose.
+      <input id="file" type="file" multiple hidden accept="audio/*,video/*,.wav,.txt">
+    </div>
+    <div class="row" style="margin-top:8px"><span id="status">No recording loaded.</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <label>Band centre <output id="fOut"></output><input id="f" type="range" min="40" max="4000" step="10" value="200"></label>
+      <label>Band width (Q) <output id="qOut"></output><input id="q" type="range" min="0.3" max="10" step="0.1" value="1.5"></label>
+      <label>Envelope window <output id="wOut"></output><input id="w" type="range" min="5" max="60" step="1" value="20"></label>
+      <label>Threshold × noise floor <output id="kOut"></output><input id="k" type="range" min="1.5" max="20" step="0.1" value="4"></label>
+      <label>Shortest pulse <output id="minOut"></output><input id="min" type="range" min="10" max="300" step="5" value="40"></label>
+      <label>Merge gaps under <output id="mergeOut"></output><input id="merge" type="range" min="0" max="200" step="5" value="30"></label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="row" style="gap:4px"><input id="bypass" type="checkbox"> No band filter</label>
+      <button id="peak" title="Compare the spectrum inside the marked calls with outside them">Find motor tone</button>
+      <button id="all">Show whole recording</button>
+      <button id="play">Play view</button>
+      <button id="copy">Copy results</button>
+      <button id="theme" title="Toggle light/dark">Theme</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label"><span>Whole recording — drag to choose a view; calls are shaded</span><span id="ovInfo"></span></div>
+    <canvas id="ov" height="90"></canvas>
+    <div class="label"><span>View — waveform (grey), band envelope (blue), threshold (red), pulses: <span class="S">short</span> / <span class="L">long</span></span><span id="viewInfo"></span></div>
+    <canvas id="det" height="230"></canvas>
+    <div class="label"><span>Spectrogram of the view (unfiltered)</span><span><label>max Hz <select id="smax"><option>500</option><option selected>1000</option><option>2000</option><option>4000</option><option>8000</option></select></label></span></div>
+    <canvas id="spec" height="160"></canvas>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="label"><span>Events — pulses in each call or MARK, timed from its start</span></div>
+      <div class="tbl"><table id="calls"><thead><tr><th>Event</th><th>Span ms</th><th>Pulses</th><th>First at</th><th>Pattern</th></tr></thead><tbody></tbody></table></div>
+      <div class="label"><span>Markers (paste <code>.markers.txt</code> contents here if you didn't drop it)</span></div>
+      <textarea id="markers" spellcheck="false"></textarea>
+    </div>
+    <div class="panel">
+      <div class="label"><span>Pulses in the view</span><span id="summary"></span></div>
+      <div class="tbl"><table id="pulses"><thead><tr><th>#</th><th>Start s</th><th>Length ms</th><th>Gap before ms</th><th>Peak ×floor</th><th>Kind</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const HOP_MS = 2;
+const state = { buf: null, raw: null, rate: 0, filtered: null, env: null, floor: 1, pulses: [], calls: [], view: [0, 0], ac: null, src: null };
+
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function setStatus(t) { $("status").textContent = t; }
+
+// ---------- loading ----------
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+$("file").onchange = e => load([...e.target.files]);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); load([...e.dataTransfer.files]); };
+
+async function load(files) {
+  const text = files.find(f => f.name.endsWith(".txt"));
+  const audio = files.find(f => !f.name.endsWith(".txt"));
+  if (text) { $("markers").value = await text.text(); }
+  if (audio) {
+    setStatus("Decoding " + audio.name + " …");
+    state.ac = state.ac || new AudioContext();
+    try {
+      const buf = await state.ac.decodeAudioData(await audio.arrayBuffer());
+      state.buf = buf; state.rate = buf.sampleRate;
+      const raw = new Float32Array(buf.length);
+      for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) raw[i] += d[i] / buf.numberOfChannels; }
+      state.raw = raw;
+      state.view = [0, buf.duration];
+      setStatus(`${audio.name}: ${buf.duration.toFixed(1)} s at ${buf.sampleRate} Hz`);
+    } catch (err) { setStatus("Couldn't decode " + audio.name + ": " + err); return; }
+  }
+  parseMarkers();
+  await analyse();
+}
+
+// ---------- markers ----------
+function parseMarkers() {
+  let start = null, offset = 0; const ring = [], end = [], marks = [];
+  for (const line of $("markers").value.split("\n")) {
+    let m;
+    if ((m = line.match(/^record_start_epoch\s+([\d.]+)/))) start = +m[1];
+    else if ((m = line.match(/^phone_minus_laptop_s\s+(-?[\d.]+)/))) offset = +m[1];
+    else if ((m = line.match(/^\s*([\d]{9,}\.\d+)\s.*CALL .*?(ringing|ended)/))) (m[2] === "ringing" ? ring : end).push(+m[1]);
+    else if ((m = line.match(/^\s*([\d]{9,}\.\d+)\s.*MARK (.*)$/))) marks.push([+m[1], m[2].trim()]);
+  }
+  state.calls = [];
+  if (start == null) return;
+  const toRec = t => t - offset - start;
+  const keep = ([a, b]) => b > 0 && (!state.buf || a < state.buf.duration);
+  ring.forEach((r, i) => {
+    const e = end.find(x => x > r);
+    const c = [toRec(r), e ? toRec(e) : toRec(r) + 1, "call " + (i + 1)];
+    if (keep(c)) state.calls.push(c);
+  });
+  // A mark's span runs to the next mark (or 3 s), so the pulses it caused fall inside it.
+  marks.forEach(([t, label], i) => {
+    const next = marks[i + 1] ? marks[i + 1][0] : t + 3;
+    const c = [toRec(t), toRec(Math.min(next, t + 8)) - 0.3, label];
+    if (keep(c)) state.calls.push(c);
+  });
+}
+$("markers").oninput = () => { parseMarkers(); detect(); draw(); };
+
+// ---------- analysis ----------
+async function bandFilter() {
+  const { raw, rate } = state;
+  if ($("bypass").checked) return raw;
+  const ctx = new OfflineAudioContext(1, raw.length, rate);
+  const b = ctx.createBuffer(1, raw.length, rate); b.copyToChannel(raw, 0);
+  const src = ctx.createBufferSource(); src.buffer = b;
+  const hp = ctx.createBiquadFilter(); hp.type = "bandpass"; hp.frequency.value = +$("f").value; hp.Q.value = +$("q").value;
+  const hp2 = ctx.createBiquadFilter(); hp2.type = "bandpass"; hp2.frequency.value = +$("f").value; hp2.Q.value = +$("q").value;
+  src.connect(hp).connect(hp2).connect(ctx.destination); src.start();
+  return (await ctx.startRendering()).getChannelData(0);
+}
+
+function envelope(x, rate) {
+  const hop = Math.max(1, Math.round(rate * HOP_MS / 1000)), win = Math.max(hop, Math.round(rate * +$("w").value / 1000));
+  const cs = new Float64Array(x.length + 1);
+  for (let i = 0; i < x.length; i++) cs[i + 1] = cs[i] + x[i] * x[i];
+  const n = Math.floor(x.length / hop), env = new Float32Array(n);
+  for (let j = 0; j < n; j++) {
+    const c = j * hop, a = Math.max(0, c - (win >> 1)), b = Math.min(x.length, c + (win >> 1));
+    env[j] = Math.sqrt((cs[b] - cs[a]) / Math.max(1, b - a));
+  }
+  return env;
+}
+
+function quantile(arr, q) { const s = Float32Array.from(arr).sort(); return s[Math.floor(q * (s.length - 1))] || 1e-9; }
+
+async function analyse() {
+  if (!state.raw) return;
+  setStatus("Filtering …");
+  state.filtered = await bandFilter();
+  state.env = envelope(state.filtered, state.rate);
+  // Noise floor: the quiet majority of the recording, outside any marked call.
+  const hopS = HOP_MS / 1000, quiet = [];
+  for (let j = 0; j < state.env.length; j++) {
+    const t = j * hopS;
+    if (!state.calls.some(([a, b]) => t > a - 0.5 && t < b + 1.5)) quiet.push(state.env[j]);
+  }
+  state.floor = Math.max(1e-7, quantile(quiet.length > 100 ? quiet : state.env, 0.5));
+  setStatus(`${state.buf.duration.toFixed(1)} s · ${state.rate} Hz · noise floor ${(20 * Math.log10(state.floor)).toFixed(1)} dBFS · ${state.calls.length} calls marked`);
+  detect(); draw();
+}
+
+function detect() {
+  if (!state.env) return;
+  const env = state.env, hopS = HOP_MS / 1000, thr = state.floor * +$("k").value, off = thr * 0.7;
+  const minS = +$("min").value / 1000, mergeS = +$("merge").value / 1000;
+  let raw = [], on = -1, peak = 0;
+  for (let j = 0; j < env.length; j++) {
+    if (on < 0 && env[j] > thr) { on = j; peak = env[j]; }
+    else if (on >= 0) { peak = Math.max(peak, env[j]); if (env[j] < off) { raw.push([on * hopS, j * hopS, peak]); on = -1; } }
+  }
+  const merged = [];
+  for (const p of raw) {
+    const last = merged[merged.length - 1];
+    if (last && p[0] - last[1] < mergeS) { last[1] = p[1]; last[2] = Math.max(last[2], p[2]); } else merged.push(p.slice());
+  }
+  state.pulses = merged.filter(p => p[1] - p[0] >= minS).map(([a, b, pk]) => ({ a, b, pk: pk / state.floor }));
+  classify(state.pulses);
+}
+
+// Splits pulse lengths into short and long with 2-means on log length; one class if they're all alike.
+function classify(ps) {
+  ps.forEach(p => p.kind = "S");
+  if (ps.length < 2) return;
+  const l = ps.map(p => Math.log(p.b - p.a)); let lo = Math.min(...l), hi = Math.max(...l);
+  if (hi - lo < Math.log(1.7)) return;
+  for (let it = 0; it < 20; it++) {
+    const cut = (lo + hi) / 2, A = l.filter(v => v < cut), B = l.filter(v => v >= cut);
+    lo = A.reduce((s, v) => s + v, 0) / A.length; hi = B.reduce((s, v) => s + v, 0) / B.length;
+  }
+  const cut = (lo + hi) / 2; ps.forEach((p, i) => p.kind = l[i] >= cut ? "L" : "S");
+}
+
+// ---------- drawing ----------
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute("height");
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + "px"; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h];
+}
+
+function draw() { drawOverview(); drawDetail(); drawSpec(); tables(); }
+
+function shadeCalls(g, w, h, t0, t1) {
+  const X = t => (t - t0) / (t1 - t0) * w;
+  for (const [a, b] of state.calls) {
+    if (b < t0 || a > t1) continue;
+    g.fillStyle = css("--call"); g.fillRect(X(a), 0, X(b) - X(a), h);
+    g.strokeStyle = css("--callEdge"); g.lineWidth = 1; g.beginPath(); g.moveTo(X(a), 0); g.lineTo(X(a), h); g.stroke();
+  }
+}
+
+function envMax(t0, t1) {
+  const j0 = Math.floor(t0 * 1000 / HOP_MS), j1 = Math.ceil(t1 * 1000 / HOP_MS); let m = state.floor * +$("k").value * 1.5;
+  for (let j = Math.max(0, j0); j < Math.min(state.env.length, j1); j++) m = Math.max(m, state.env[j]);
+  return m;
+}
+
+function plotEnv(g, w, h, t0, t1, top) {
+  const hopS = HOP_MS / 1000; g.strokeStyle = css("--env"); g.lineWidth = 1.2; g.beginPath();
+  for (let x = 0; x < w; x++) {
+    const ja = Math.floor((t0 + (t1 - t0) * x / w) / hopS), jb = Math.max(ja + 1, Math.floor((t0 + (t1 - t0) * (x + 1) / w) / hopS));
+    let m = 0; for (let j = ja; j < jb && j < state.env.length; j++) m = Math.max(m, state.env[j] || 0);
+    const y = h - Math.min(1, m / top) * (h - 4); x ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.stroke();
+}
+
+function drawOverview() {
+  const [g, w, h] = fit($("ov")); if (!state.env) return;
+  const T = state.buf.duration;
+  shadeCalls(g, w, h, 0, T);
+  plotEnv(g, w, h, 0, T, envMax(0, T));
+  const [a, b] = state.view; g.fillStyle = css("--sel"); g.fillRect(a / T * w, 0, (b - a) / T * w, h);
+  $("ovInfo").textContent = `${T.toFixed(1)} s`;
+}
+
+function drawDetail() {
+  const [g, w, h] = fit($("det")); if (!state.env) return;
+  const [t0, t1] = state.view, X = t => (t - t0) / (t1 - t0) * w, rate = state.rate;
+  shadeCalls(g, w, h, t0, t1);
+  for (const p of state.pulses) { if (p.b < t0 || p.a > t1) continue; g.fillStyle = css("--pulse"); g.fillRect(X(p.a), 0, Math.max(1, X(p.b) - X(p.a)), h); }
+  // waveform, min/max per pixel, scaled to the loudest sample in view
+  const i0 = Math.max(0, Math.floor(t0 * rate)), i1 = Math.min(state.raw.length, Math.ceil(t1 * rate));
+  let amp = 1e-6; for (let i = i0; i < i1; i += Math.max(1, ((i1 - i0) / 20000) | 0)) amp = Math.max(amp, Math.abs(state.raw[i]));
+  g.strokeStyle = css("--wave"); g.lineWidth = 1; g.beginPath();
+  for (let x = 0; x < w; x++) {
+    const a = i0 + Math.floor((i1 - i0) * x / w), b = Math.max(a + 1, i0 + Math.floor((i1 - i0) * (x + 1) / w));
+    let lo = 1, hi = -1; for (let i = a; i < b; i++) { const v = state.raw[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    g.moveTo(x + .5, h / 2 - hi / amp * h * .25); g.lineTo(x + .5, h / 2 - lo / amp * h * .25);
+  }
+  g.stroke();
+  const top = envMax(t0, t1);
+  plotEnv(g, w, h, t0, t1, top);
+  const thrY = h - (state.floor * +$("k").value / top) * (h - 4);
+  g.strokeStyle = css("--thr"); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, thrY); g.lineTo(w, thrY); g.stroke(); g.setLineDash([]);
+  g.font = "600 11px system-ui"; g.textAlign = "center";
+  for (const p of state.pulses) { if (p.b < t0 || p.a > t1) continue; g.fillStyle = css(p.kind === "L" ? "--long" : "--short"); g.fillText(p.kind === "L" ? "—" : "•", X((p.a + p.b) / 2), 12); }
+  // time axis
+  g.fillStyle = css("--muted"); g.font = "11px system-ui"; g.textAlign = "left";
+  const span = t1 - t0, step = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20].find(s => span / s < 12) || 50;
+  for (let t = Math.ceil(t0 / step) * step; t < t1; t += step) { g.fillRect(X(t), h - 5, 1, 5); g.fillText(t.toFixed(step < 1 ? 2 : 0), X(t) + 2, h - 7); }
+  $("viewInfo").textContent = `${t0.toFixed(2)}–${t1.toFixed(2)} s`;
+}
+
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const ar = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci, ai = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+        re[i + k + len / 2] = re[i + k] - ar; im[i + k + len / 2] = im[i + k] - ai; re[i + k] += ar; im[i + k] += ai;
+        const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+      }
+    }
+  }
+}
+
+function spectrum(i0, N) {
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (let k = 0; k < N; k++) re[k] = (state.raw[i0 + k] || 0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * k / (N - 1)));
+  fft(re, im); const p = new Float64Array(N / 2); for (let k = 0; k < N / 2; k++) p[k] = re[k] * re[k] + im[k] * im[k]; return p;
+}
+
+function drawSpec() {
+  const [g, w, h] = fit($("spec")); if (!state.raw) return;
+  const [t0, t1] = state.view, rate = state.rate, N = 2048, fmax = +$("smax").value, bins = Math.min(N / 2, Math.ceil(fmax / (rate / N)));
+  const cols = Math.min(w, 600), img = g.createImageData(cols, bins), cells = [];
+  let lo = Infinity, hi = -Infinity;
+  for (let c = 0; c < cols; c++) {
+    const i0 = Math.floor((t0 + (t1 - t0) * c / cols) * rate) - N / 2, p = spectrum(Math.max(0, i0), N), col = new Float32Array(bins);
+    for (let b = 0; b < bins; b++) { col[b] = 10 * Math.log10(p[b] + 1e-12); lo = Math.min(lo, col[b]); hi = Math.max(hi, col[b]); }
+    cells.push(col);
+  }
+  lo = Math.max(lo, hi - 60);
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches && document.documentElement.dataset.theme !== "light" || document.documentElement.dataset.theme === "dark";
+  for (let c = 0; c < cols; c++) for (let b = 0; b < bins; b++) {
+    const v = Math.max(0, Math.min(1, (cells[c][b] - lo) / (hi - lo))), o = ((bins - 1 - b) * cols + c) * 4;
+    const r = dark ? 20 + 235 * v ** 1.5 : 255 - 220 * v, gg = dark ? 20 + 180 * v ** 2 : 255 - 170 * v ** 0.8, bb = dark ? 30 + 120 * v : 255 - 60 * v ** 2;
+    img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = bb; img.data[o + 3] = 255;
+  }
+  const tmp = document.createElement("canvas"); tmp.width = cols; tmp.height = bins; tmp.getContext("2d").putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = false; g.drawImage(tmp, 0, 0, w, h);
+  if (!$("bypass").checked) { const y = h - (+$("f").value / fmax) * h; g.strokeStyle = css("--thr"); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); g.setLineDash([]); }
+  g.fillStyle = css("--muted"); g.font = "11px system-ui"; for (let f = 0; f <= fmax; f += fmax / 4) g.fillText(f + " Hz", 3, Math.max(10, h - f / fmax * h - 2));
+}
+
+// ---------- tables ----------
+function morse(ps) { return ps.map(p => p.kind === "L" ? "−" : "•").join(" "); }
+
+function tables() {
+  const [t0, t1] = state.view, inView = state.pulses.filter(p => p.b > t0 && p.a < t1);
+  $("pulses").tBodies[0].innerHTML = inView.map((p, i) => {
+    const prev = state.pulses[state.pulses.indexOf(p) - 1];
+    return `<tr><td>${i + 1}</td><td>${p.a.toFixed(3)}</td><td>${Math.round((p.b - p.a) * 1000)}</td><td>${prev ? Math.round((p.a - prev.b) * 1000) : ""}</td><td>${p.pk.toFixed(1)}</td><td class="${p.kind}">${p.kind === "L" ? "long" : "short"}</td></tr>`;
+  }).join("");
+  const S = inView.filter(p => p.kind === "S").map(p => (p.b - p.a) * 1000), L = inView.filter(p => p.kind === "L").map(p => (p.b - p.a) * 1000);
+  const avg = a => a.length ? Math.round(a.reduce((s, v) => s + v, 0) / a.length) : "–";
+  $("summary").textContent = `${inView.length} pulses · short ≈ ${avg(S)} ms · long ≈ ${avg(L)} ms`;
+  $("calls").tBodies[0].innerHTML = state.calls.map(([a, b, label], i) => {
+    const ps = state.pulses.filter(p => p.a >= a - 0.2 && p.a < b + 1.0);
+    return `<tr class="click" data-i="${i}"><td>${label} @ ${a.toFixed(2)} s</td><td>${Math.round((b - a) * 1000)}</td><td>${ps.length}</td><td>${ps.length ? "+" + Math.round((ps[0].a - a) * 1000) + " ms" : "–"}</td><td class="morse">${morse(ps)}</td></tr>`;
+  }).join("") || `<tr><td colspan="5" style="text-align:left;color:var(--muted)">No markers — drop or paste a .markers.txt to time pulses per call.</td></tr>`;
+  for (const tr of $("calls").querySelectorAll("tr.click")) tr.onclick = () => { const [a, b] = state.calls[+tr.dataset.i]; state.view = [Math.max(0, a - 0.5), Math.min(state.buf.duration, b + 1.5)]; draw(); };
+}
+
+function resultsText() {
+  const lines = [`Sound Scope · band ${$("bypass").checked ? "off" : $("f").value + " Hz Q" + $("q").value} · window ${$("w").value} ms · threshold ×${$("k").value}`];
+  state.calls.forEach(([a, b, label], i) => {
+    const ps = state.pulses.filter(p => p.a >= a - 0.2 && p.a < b + 1.0);
+    lines.push(`${label} span ${Math.round((b - a) * 1000)} ms: ${morse(ps)}`);
+    ps.forEach((p, k) => lines.push(`  +${Math.round((p.a - a) * 1000)} ms  len ${Math.round((p.b - p.a) * 1000)}  gap ${k ? Math.round((p.a - ps[k - 1].b) * 1000) : "-"}  ${p.kind}`));
+  });
+  if (!state.calls.length) state.pulses.forEach(p => lines.push(`${p.a.toFixed(3)} s  len ${Math.round((p.b - p.a) * 1000)} ms  ${p.kind}`));
+  return lines.join("\n");
+}
+
+// ---------- interaction ----------
+let dragFrom = null;
+$("ov").onmousedown = e => { if (!state.buf) return; dragFrom = e.offsetX / $("ov").clientWidth * state.buf.duration; };
+window.onmouseup = e => {
+  if (dragFrom == null) return;
+  const r = $("ov").getBoundingClientRect(), t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * state.buf.duration;
+  let a = Math.min(dragFrom, t), b = Math.max(dragFrom, t); if (b - a < 0.2) { a = Math.max(0, t - 2); b = Math.min(state.buf.duration, t + 2); }
+  state.view = [a, b]; dragFrom = null; draw();
+};
+$("det").onwheel = e => {
+  if (!state.buf) return; e.preventDefault();
+  const [a, b] = state.view, c = a + (b - a) * e.offsetX / $("det").clientWidth, z = e.deltaY > 0 ? 1.25 : 0.8;
+  state.view = [Math.max(0, c - (c - a) * z), Math.min(state.buf.duration, c + (b - c) * z)]; draw();
+};
+$("all").onclick = () => { if (state.buf) { state.view = [0, state.buf.duration]; draw(); } };
+$("play").onclick = () => {
+  if (!state.buf) return; if (state.src) { state.src.stop(); state.src = null; return; }
+  const s = state.ac.createBufferSource(); s.buffer = state.buf; s.connect(state.ac.destination);
+  s.onended = () => state.src = null; s.start(0, state.view[0], state.view[1] - state.view[0]); state.src = s;
+};
+$("copy").onclick = async () => { const t = resultsText(); try { await navigator.clipboard.writeText(t); setStatus("Results copied."); } catch { prompt("Copy:", t); } };
+$("theme").onclick = () => { const d = document.documentElement; d.dataset.theme = d.dataset.theme === "dark" ? "light" : "dark"; draw(); };
+
+// Strongest frequency that is louder inside the marked calls than outside them.
+$("peak").onclick = () => {
+  if (!state.raw) return;
+  const N = 4096, rate = state.rate, inside = new Float64Array(N / 2), outside = new Float64Array(N / 2); let ni = 0, no = 0;
+  for (let i0 = 0; i0 + N < state.raw.length; i0 += N / 2) {
+    const t = (i0 + N / 2) / rate, inCall = state.calls.some(([a, b]) => t > a && t < b), near = state.calls.some(([a, b]) => t > a - 1 && t < b + 2);
+    if (state.calls.length && !inCall && near) continue;
+    const p = spectrum(i0, N); if (inCall) { ni++; p.forEach((v, k) => inside[k] += v); } else { no++; p.forEach((v, k) => outside[k] += v); }
+  }
+  if (!ni) { setStatus("Need call markers to find the motor tone."); return; }
+  let best = 0, bk = 0;
+  for (let k = Math.ceil(40 / (rate / N)); k < Math.min(N / 2, 8000 / (rate / N)); k++) { const r = (inside[k] / ni) / ((outside[k] / Math.max(1, no)) + 1e-18); if (r > best) { best = r; bk = k; } }
+  const f = Math.round(bk * rate / N); $("f").value = f; syncOut(); setStatus(`Motor tone ≈ ${f} Hz (${(10 * Math.log10(best)).toFixed(1)} dB louder during calls).`); analyse();
+};
+
+function syncOut() {
+  $("fOut").textContent = $("f").value + " Hz"; $("qOut").textContent = $("q").value; $("wOut").textContent = $("w").value + " ms";
+  $("kOut").textContent = "×" + $("k").value; $("minOut").textContent = $("min").value + " ms"; $("mergeOut").textContent = $("merge").value + " ms";
+}
+let pending;
+for (const id of ["f", "q", "w", "bypass"]) $(id).oninput = () => { syncOut(); clearTimeout(pending); pending = setTimeout(analyse, 150); };
+for (const id of ["k", "min", "merge"]) $(id).oninput = () => { syncOut(); detect(); draw(); };
+$("smax").onchange = drawSpec;
+window.onresize = () => draw();
+syncOut(); draw();
+</script>
+</body>
+</html>

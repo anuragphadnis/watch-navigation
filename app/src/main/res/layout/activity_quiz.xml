@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/quizRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/quiz_title"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/quiz_help"
+            android:textSize="14sp" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnQuizCode" style="@style/RowButton" />
+            <Button android:id="@+id/btnQuizDevice" style="@style/RowButton" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnQuizPlay"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/quiz_play"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/quizFeedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:minHeight="28dp"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnAnsLeft" style="@style/AnswerButton" android:text="@string/ans_left" />
+            <Button android:id="@+id/btnAnsRight" style="@style/AnswerButton" android:text="@string/ans_right" />
+            <Button android:id="@+id/btnAnsUturn" style="@style/AnswerButton" android:text="@string/ans_uturn" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnAnsLeftNow" style="@style/AnswerButton" android:text="@string/ans_left_now" />
+            <Button android:id="@+id/btnAnsRightNow" style="@style/AnswerButton" android:text="@string/ans_right_now" />
+            <Button android:id="@+id/btnAnsUturnNow" style="@style/AnswerButton" android:text="@string/ans_uturn_now" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnAnsMissed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ans_missed" />
+
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/quiz_results" />
+
+        <TextView
+            android:id="@+id/quizStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnQuizReset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/quiz_reset" />
+    </LinearLayout>
+</ScrollView>

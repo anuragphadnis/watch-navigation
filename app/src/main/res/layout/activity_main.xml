@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/app_name"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:lineSpacingExtra="4dp"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btnListenerAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/grant_listener_access" />
+
+        <Button
+            android:id="@+id/btnPostNotifications"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/allow_notifications" />
+
+        <Button
+            android:id="@+id/btnBattery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/battery_unrestricted" />
+
+        <Button
+            android:id="@+id/btnRide"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/start_ride"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/btnOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/output_both" />
+
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/test_patterns" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnTestLeft" style="@style/RowButton" android:text="@string/test_left" />
+            <Button android:id="@+id/btnTestLeftNow" style="@style/RowButton" android:text="@string/test_left_now" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnTestRight" style="@style/RowButton" android:text="@string/test_right" />
+            <Button android:id="@+id/btnTestRightNow" style="@style/RowButton" android:text="@string/test_right_now" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnTestUturn" style="@style/RowButton" android:text="@string/test_uturn" />
+            <Button android:id="@+id/btnTestUturnNow" style="@style/RowButton" android:text="@string/test_uturn_now" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnOpenQuiz"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/open_quiz" />
+
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/rhythm_patterns" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnRhythmLeft" style="@style/RowButton" android:text="@string/rhythm_left" />
+            <Button android:id="@+id/btnRhythmLeftNow" style="@style/RowButton" android:text="@string/rhythm_left_now" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnRhythmRight" style="@style/RowButton" android:text="@string/rhythm_right" />
+            <Button android:id="@+id/btnRhythmRightNow" style="@style/RowButton" android:text="@string/rhythm_right_now" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnRhythmUturn" style="@style/RowButton" android:text="@string/rhythm_uturn" />
+            <Button android:id="@+id/btnRhythmUturnNow" style="@style/RowButton" android:text="@string/rhythm_uturn_now" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/watch_test" />
+
+        <Button
+            android:id="@+id/btnWatchFind"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_find" />
+
+        <Button
+            android:id="@+id/btnWatchReadVibration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_read_vibration" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnWatchNavi" style="@style/RowButton" android:text="@string/watch_navi" />
+            <Button android:id="@+id/btnWatchGoogleNavi" style="@style/RowButton" android:text="@string/watch_google_navi" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnWatchNotif1" style="@style/RowButton" android:text="@string/watch_notif1" />
+            <Button android:id="@+id/btnWatchNotif2" style="@style/RowButton" android:text="@string/watch_notif2" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnWatchBurst"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_burst" />
+
+        <Button
+            android:id="@+id/btnWatchSymbols"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_symbols" />
+
+        <Button
+            android:id="@+id/btnWatchProbeVibration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_probe_vibration" />
+
+        <Button
+            android:id="@+id/btnWatchLoveTap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_love_tap" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnWatchLoveTapContact" style="@style/RowButton" android:text="@string/watch_love_tap_contact" />
+            <Button android:id="@+id/btnWatchLoveTapRemove" style="@style/RowButton" android:text="@string/watch_love_tap_remove" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnWatchFakeCall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/watch_fake_call" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnPhoneCallSelf" style="@style/RowButton" android:text="@string/phone_call_self" />
+            <Button android:id="@+id/btnPhoneCallManaged" style="@style/RowButton" android:text="@string/phone_call_managed" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnRingShort" style="@style/RowButton" android:text="@string/ring_short" />
+            <Button android:id="@+id/btnRingLong" style="@style/RowButton" android:text="@string/ring_long" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnRingSweep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ring_sweep" />
+
+        <Button
+            android:id="@+id/btnVibrationModes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/vibration_modes" />
+
+        <Button
+            android:id="@+id/btnVibrationHunt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/vibration_hunt" />
+
+        <Button
+            android:id="@+id/btnNotificationChain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notification_chain" />
+
+        <Button
+            android:id="@+id/btnBuzzCut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/buzz_cut" />
+
+        <Button
+            android:id="@+id/btnVibrationOffCut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/vibration_off_cut" />
+
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/debug_log" />
+
+        <LinearLayout style="@style/ButtonRow">
+            <Button android:id="@+id/btnCopyLog" style="@style/RowButton" android:text="@string/copy_log" />
+            <Button android:id="@+id/btnClearLog" style="@style/RowButton" android:text="@string/clear_log" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+</ScrollView>
